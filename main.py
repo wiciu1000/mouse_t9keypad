@@ -27,9 +27,9 @@ def get_app_path():
         # Running as .py script
         return os.path.dirname(os.path.abspath(__file__))
 
-APP_TITLE = "MouseT9Keypad"
+APP_TITLE = "Mouse T9 Keypad"
 GITHUB_LINK = "github.com/wiciu1000/mouse_t9keypad"
-CONFIG_FILENAME = "mouse_t9_config.json"
+CONFIG_FILENAME = "mouse_t9keypad_config.json"
 CONFIG_FILE_PATH = os.path.join(get_app_path(), CONFIG_FILENAME)
 
 # Default English T9 mapping
@@ -45,7 +45,7 @@ DEFAULT_MAPPING = {
     'f21': ['w', 'x', 'y', 'z', '9'],                 # Btn 9
     'f22': ['ENTER'],                                 # Btn 10
     'f23': [' ', '0'],                                # Btn 11
-    'f24': ['(', ')', '[', ']', '{', '}', '<', '>', '/', '\\', '*', '#'] # Btn 12
+    'f24': ['BACKSPACE', '(', ')', '[', ']', '{', '}', '<', '>', '/', '\\', '*', '#'] # Btn 12
 }
 
 DEFAULT_CONFIG = {
@@ -60,7 +60,7 @@ DEFAULT_CONFIG = {
 # ICON GENERATOR (Procedural Pixel Art)
 # =================================================================================
 
-def create_retro_icon():
+def create_app_icon():
     """Generates a retro phone icon programmatically using PIL."""
     size = 64
     img = Image.new('RGBA', (size, size), (0, 0, 0, 0)) # Transparent bg
@@ -258,6 +258,8 @@ class T9Engine:
                 keyboard.send('enter')
             elif char_to_type == 'SPACE':
                 keyboard.write(' ')
+            elif char_to_type == 'BACKSPACE':
+                keyboard.send('backspace')
             else:
                 if is_ctrl:
                     keyboard.send(char_to_type.lower())
@@ -304,7 +306,9 @@ class T9Engine:
         is_ctrl = keyboard.is_pressed('ctrl')
         is_shift = keyboard.is_pressed('shift')
 
-        if preview_char != 'ENTER':
+        if preview_char == 'BACKSPACE':
+             display_text = "<<"
+        elif preview_char != 'ENTER':
             if is_ctrl:
                 mods = "Ctrl+"
                 if is_shift: mods += "Shift+"
@@ -338,6 +342,7 @@ class PhoneKey(tk.Frame):
         clean_chars = "".join(chars[:3])
         if not chars: clean_chars = "..."
         if "ENTER" in chars: clean_chars = "Enter"
+        if "BACKSPACE" in chars: clean_chars = "<<"
         
         self.lbl_chars = tk.Label(container, text=clean_chars, font=("Roboto", 10), bg="#e1e1e1", fg="#666")
         self.lbl_chars.pack()
@@ -347,6 +352,7 @@ class PhoneKey(tk.Frame):
         clean_chars = "".join(chars[:3])
         if not chars: clean_chars = "..."
         if "ENTER" in chars: clean_chars = "Enter"
+        if "BACKSPACE" in chars: clean_chars = "<<"
         self.lbl_chars.config(text=clean_chars)
 
     def on_click(self, event):
@@ -368,7 +374,7 @@ class SettingsApp(tk.Tk):
         self.title(APP_TITLE)
         
         # Generowanie i ustawianie ikony aplikacji
-        self.app_icon_img = create_retro_icon()
+        self.app_icon_img = create_app_icon()
         self.tk_icon = ImageTk.PhotoImage(self.app_icon_img)
         self.iconphoto(False, self.tk_icon)
         
@@ -425,7 +431,7 @@ class SettingsApp(tk.Tk):
             pystray.MenuItem('Exit', quit_app)
         )
         
-        self.tray_icon = pystray.Icon("RetroT9", image, "MouseT9Keypad", menu)
+        self.tray_icon = pystray.Icon("MouseT9Keypad", image, "Mouse T9 Keypad", menu)
         threading.Thread(target=self.tray_icon.run, daemon=True).start()
 
     def create_widgets(self):
@@ -592,5 +598,14 @@ class SettingsApp(tk.Tk):
         sys.exit()
 
 if __name__ == "__main__":
+    # Single Instance Check
+    mutex_name = "MouseT9Keypad_Mutex"
+    kernel32 = ctypes.windll.kernel32
+    mutex = kernel32.CreateMutexW(None, False, mutex_name)
+    
+    if kernel32.GetLastError() == 183: # ERROR_ALREADY_EXISTS
+        ctypes.windll.user32.MessageBoxW(0, "The application is already running.", "Mouse T9 Keypad", 0x30)
+        sys.exit()
+
     app = SettingsApp()
     app.mainloop()
